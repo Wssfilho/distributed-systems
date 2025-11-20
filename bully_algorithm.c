@@ -113,11 +113,6 @@ static void responder_eleicao(int rank_origem)
 // Armazena a resposta OK e passa a aguardar o novo coordenador
 static void receber_ok(int rank_origem)
 {
-    if (estado_eleicao != ESTADO_ESPERANDO_OK)
-    {
-        // Ignora OKs recebidos fora da janela correta
-        return;
-    }
     printf("Processo %d recebeu OK de %d\n", id_processo, rank_origem + 1);
     recebeu_ok = 1;
     estado_eleicao = ESTADO_ESPERANDO_COORD;
@@ -200,9 +195,6 @@ static void verificar_timeouts(void)
 // Lê parâmetros da linha de comando e monta o cenário solicitado
 static void configurar_cenario(int argc, char **argv)
 {
-    // Valores padrão reproduzem o exemplo do livro (processos 4,5,6,7)
-    processo_falho = (total_processos >= 7) ? 7 : total_processos;
-    processo_detector = (total_processos >= 4) ? 4 : total_processos;
 
     if (argc > 1)
     {
