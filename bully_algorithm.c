@@ -300,7 +300,7 @@ int main(int argc, char **argv)
     configurar_cenario(argc, argv);
 
     // Exibe mensagem de inicialização do processo
-    printf("Processo %d inicializado (sem coordenador)\n", id_processo);
+    printf("Processo %d inicializado\n", id_processo);
     // Sincroniza todos os processos antes de iniciar simulação
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -335,8 +335,8 @@ int main(int argc, char **argv)
         {
             detector_disparado = 1; // Evita disparar múltiplas vezes
             // Exibe mensagem de detecção
-            printf("\n=== Processo %d detectou que processo %d caiu ===\n",
-                   id_processo, processo_falho);
+            printf("\n=== Processo %d detectou que processo coordenador %d não responde ===\n",
+                   id_processo, total_processos - 1);
             // Inicia eleição forçada
             iniciar_eleicao(" (detectou queda)", 1);
         }
