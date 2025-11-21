@@ -102,6 +102,7 @@ void iniciar_eleicao(const char *motivo, int forcar)
     else // Se não há processos maiores
     {
         anunciar_coordenador(); // Este processo se torna coordenador
+        // return;
     }
 }
 
