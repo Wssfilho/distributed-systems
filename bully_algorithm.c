@@ -90,7 +90,7 @@ void iniciar_eleicao(const char *motivo, int forcar)
     {
         // Envia mensagem de eleição para o processo i
         MPI_Send(&id_processo, 1, MPI_INT, i, TAG_ELEICAO, MPI_COMM_WORLD);
-        printf("Processo %d -> ELEIÇÃO -> processo %d\n", id_processo, i + 1);
+        printf("Processo %d -> ELEIÇÃO -> processo %d\n", id_processo, i);
         enviou = 1; // Marca que pelo menos uma mensagem foi enviada
     }
 
@@ -111,7 +111,7 @@ void iniciar_eleicao(const char *motivo, int forcar)
 void responder_eleicao(int rank_origem)
 {
     // Exibe mensagem indicando recebimento de eleição
-    printf("Processo %d recebeu ELEIÇÃO de %d\n", id_processo, rank_origem + 1);
+    printf("Processo %d recebeu ELEIÇÃO de %d\n", id_processo, rank_origem);
 
     // Envia resposta OK para o processo que iniciou a eleição
     MPI_Send(&id_processo, 1, MPI_INT, rank_origem, TAG_OK, MPI_COMM_WORLD);
@@ -128,7 +128,7 @@ void responder_eleicao(int rank_origem)
 void receber_ok(int rank_origem)
 {
     // Exibe mensagem indicando recebimento de OK
-    printf("Processo %d recebeu OK de %d\n", id_processo, rank_origem + 1);
+    printf("Processo %d recebeu OK de %d\n", id_processo, rank_origem);
     recebeu_ok = 1; // Marca flag indicando que recebeu pelo menos um OK
 
     // Se estava esperando OK, agora passa a esperar anúncio do coordenador
@@ -178,7 +178,7 @@ void processar_mensagens(void)
             if (status.MPI_TAG == TAG_ELEICAO)
             {
                 printf("Processo %d offline ignorou ELEIÇÃO de %d\n",
-                       id_processo, status.MPI_SOURCE + 1);
+                       id_processo, status.MPI_SOURCE);
             }
             continue; // Pula para próxima iteração sem processar
         }
@@ -240,8 +240,8 @@ void configurar_cenario(int argc, char **argv)
         {
             // Exibe instruções de uso do programa
             printf("Uso: mpirun -np <N> %s <processo_offline> <processo_detector> [processo_volta]\n", argv[0]);
-            printf("  processo_offline: ID do processo que cairá (1 a N)\n");
-            printf("  processo_detector: ID que detecta e inicia eleição (1 a N)\n");
+            printf("  processo_offline: ID do processo que cairá (0 a N-1)\n");
+            printf("  processo_detector: ID que detecta e inicia eleição (0 a N-1)\n");
             printf("  processo_volta: (opcional) 1=volta, 0=não volta (padrão: 1)\n");
         }
         MPI_Finalize(); // Finaliza ambiente MPI
@@ -257,9 +257,9 @@ void configurar_cenario(int argc, char **argv)
         processo_volta = (atoi(argv[3]) == 1); // Se argv[3]==1, volta; senão, não volta
 
     // Valida os parâmetros fornecidos
-    if (processo_falho < 1 || processo_falho > total_processos ||       // Processo falho fora do intervalo
-        processo_detector < 1 || processo_detector > total_processos || // Detector fora do intervalo
-        processo_detector == processo_falho)                            // Detector não pode ser o processo que cai
+    if (processo_falho < 0 || processo_falho >= total_processos ||       // Processo falho fora do intervalo
+        processo_detector < 0 || processo_detector >= total_processos || // Detector fora do intervalo
+        processo_detector == processo_falho)                             // Detector não pode ser o processo que cai
     {
         if (rank_mpi == 0) // Apenas processo 0 exibe erro
         {
@@ -294,8 +294,8 @@ int main(int argc, char **argv)
     // Obtém o número total de processos em execução
     MPI_Comm_size(MPI_COMM_WORLD, &total_processos);
 
-    // Converte rank (0 a N-1) para ID (1 a N) para exibição amigável
-    id_processo = rank_mpi + 1;
+    // ID do processo é o próprio rank (0 a N-1)
+    id_processo = rank_mpi;
     // Configura cenário baseado nos argumentos da linha de comando
     configurar_cenario(argc, argv);
 
