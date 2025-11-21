@@ -32,6 +32,7 @@ int estado_eleicao = ESTADO_OCIOSO; // Estado inicial do processo
 // Parâmetros do cenário: quem detecta falha, quem falha e tempos envolvidos
 int processo_detector = -1; // Processo que detectará o fim do coordenador
 int processo_falho = -1;    // Processo escolhido para cair
+int processo_volta = 1;     // Flag que indica se o processo que cai volta (1=sim, 0=não)
 double tempo_queda = 2.0;   // Momento da queda em segundos
 double tempo_retorno = 9.0; // Momento do retorno em segundos
 
@@ -104,10 +105,20 @@ static void responder_eleicao(int rank_origem)
     int id_origem = rank_origem + 1;                                         // Converte rank em ID legível
     printf("Processo %d recebeu ELEIÇÃO de %d\n", id_processo, id_origem);   // Loga o recebimento
     MPI_Send(&id_processo, 1, MPI_INT, rank_origem, TAG_OK, MPI_COMM_WORLD); // Retorna mensagem OK
-    if (estado_eleicao == ESTADO_OCIOSO)                                     // Se estava ocioso
+
+    // Se já é líder, apenas envia OK mas não precisa iniciar nova eleição
+    if (estado_eleicao == ESTADO_LIDER)
+    {
+        // Já é coordenador, não precisa iniciar eleição, só reafirma sua posição
+        return;
+    }
+
+    // Se não está participando de eleição, inicia eleição própria
+    if (estado_eleicao == ESTADO_OCIOSO)
     {
         iniciar_eleicao(" (atendeu pedido)", 0); // Inicia eleição própria para desafiar
     }
+    // Se já está em processo de eleição, apenas respondeu OK mas continua sua própria eleição
 } // Fim da função responder_eleicao
 
 // Armazena a resposta OK e passa a aguardar o novo coordenador
@@ -115,8 +126,13 @@ static void receber_ok(int rank_origem)
 {
     printf("Processo %d recebeu OK de %d\n", id_processo, rank_origem + 1); // Loga quem respondeu
     recebeu_ok = 1;                                                         // Marca que algum processo maior continua vivo
-    estado_eleicao = ESTADO_ESPERANDO_COORD;                                // Agora aguarda anúncio de coordenador
-    inicio_espera_coord = MPI_Wtime();                                      // Salva instante do início dessa espera
+
+    // Se ainda estava esperando OK, agora espera coordenador
+    if (estado_eleicao == ESTADO_ESPERANDO_OK)
+    {
+        estado_eleicao = ESTADO_ESPERANDO_COORD; // Agora aguarda anúncio de coordenador
+        inicio_espera_coord = MPI_Wtime();       // Salva instante do início dessa espera
+    }
 } // Fim da função receber_ok
 
 // Atualiza o coordenador local após anúncio
@@ -195,42 +211,73 @@ static void verificar_timeouts(void)
 // Lê parâmetros da linha de comando e monta o cenário solicitado
 static void configurar_cenario(int argc, char **argv)
 {
+    // Parâmetros: <processo_offline> <processo_detector> [processo_volta]
+    if (argc < 3) // Verifica se há parâmetros suficientes
+    {
+        if (rank_mpi == 0) // Apenas rank 0 exibe erro
+        {
+            printf("Uso: mpirun -np <N> %s <processo_offline> <processo_detector> [processo_volta]\n", argv[0]);
+            printf("  processo_offline: ID do processo que cairá (1 a N)\n");
+            printf("  processo_detector: ID do processo que detectará e iniciará eleição (1 a N)\n");
+            printf("  processo_volta: (opcional) 1=processo volta, 0=não volta (padrão: 1)\n");
+        }
+        MPI_Finalize();
+        exit(1);
+    }
 
-    if (argc > 1) // Caso exista argumento para processo falho
+    processo_falho = atoi(argv[1]);    // ID do processo que cairá
+    processo_detector = atoi(argv[2]); // ID do processo que detecta
+
+    if (argc > 3) // Verifica se foi informado se o processo volta
     {
-        processo_falho = atoi(argv[1]); // Converte string em inteiro
-    }
-    if (argc > 2) // Caso exista argumento para detector
-    {
-        processo_detector = atoi(argv[2]); // Armazena detector customizado
-    }
-    if (argc > 3) // Caso seja informado o tempo de queda
-    {
-        tempo_queda = atof(argv[3]); // Converte para double
-    }
-    if (argc > 4) // Caso seja informado o tempo de retorno
-    {
-        tempo_retorno = atof(argv[4]); // Armazena novo retorno
+        processo_volta = atoi(argv[3]); // 1=volta, 0=não volta
+        if (processo_volta != 0 && processo_volta != 1)
+        {
+            processo_volta = 1; // Padrão: processo volta
+        }
     }
 
     if (processo_falho < 1 || processo_falho > total_processos) // Valida ID do processo falho
     {
-        processo_falho = -1; // Usa valor inválido para ignorar
+        if (rank_mpi == 0)
+        {
+            printf("Erro: processo_offline deve estar entre 1 e %d\n", total_processos);
+        }
+        MPI_Finalize();
+        exit(1);
     }
     if (processo_detector < 1 || processo_detector > total_processos) // Valida ID do detector
     {
-        processo_detector = -1; // Mesma estratégia de fallback
+        if (rank_mpi == 0)
+        {
+            printf("Erro: processo_detector deve estar entre 1 e %d\n", total_processos);
+        }
+        MPI_Finalize();
+        exit(1);
     }
-    if (tempo_retorno <= tempo_queda) // Garante cronologia correta
+    if (processo_detector == processo_falho) // Detector não pode ser o processo que cai
     {
-        // Garante que o retorno ocorra em um instante posterior à queda
-        tempo_retorno = tempo_queda + 3.0; // Ajusta retorno mínimo
+        if (rank_mpi == 0)
+        {
+            printf("Erro: processo_detector não pode ser o mesmo que processo_offline\n");
+        }
+        MPI_Finalize();
+        exit(1);
     }
 
     if (rank_mpi == 0) // Apenas um processo imprime a configuração
     {
-        printf("Configuração: falho=%d detector=%d queda=%.1fs retorno=%.1fs\n", // Constrói saída amigável
-               processo_falho, processo_detector, tempo_queda, tempo_retorno);   // Exibe parâmetros vigentes
+        printf("=== Configuração ===\n");
+        printf("Número de processos: %d\n", total_processos);
+        printf("Processo offline: %d\n", processo_falho);
+        printf("Processo detector: %d\n", processo_detector);
+        printf("Processo volta: %s\n", processo_volta ? "SIM" : "NÃO");
+        printf("Tempo de queda: %.1fs\n", tempo_queda);
+        if (processo_volta)
+        {
+            printf("Tempo de retorno: %.1fs\n", tempo_retorno);
+        }
+        printf("====================\n\n");
     }
 } // Fim da função configurar_cenario
 
@@ -244,24 +291,10 @@ int main(int argc, char **argv)
     id_processo = rank_mpi + 1;     // Converte rank em ID legível
     configurar_cenario(argc, argv); // Carrega parâmetros de execução
 
-    printf("Processo %d inicializado\n", id_processo); // Indica início deste processo
-    MPI_Barrier(MPI_COMM_WORLD);                       // Sincroniza todos antes da eleição
+    printf("Processo %d inicializado (sem coordenador)\n", id_processo); // Indica início deste processo
+    MPI_Barrier(MPI_COMM_WORLD);                                         // Sincroniza todos antes da simulação
 
-    if (id_processo == total_processos) // Verifica se este é o maior ID
-    {
-        // Maior ID vira coordenador inicial
-        anunciar_coordenador(); // Dispara anúncio de coordenação
-    }
-    else // Demais processos aguardam
-    {
-        // Os demais aguardam o anúncio inicial
-        int msg_coord;                                                                              // Armazena ID do coordenador inicial
-        MPI_Status status;                                                                          // Metadados da mensagem recebida
-        MPI_Recv(&msg_coord, 1, MPI_INT, MPI_ANY_SOURCE, TAG_COORDENADOR, MPI_COMM_WORLD, &status); // Espera anúncio
-        receber_coordenador(msg_coord);                                                             // Atualiza com o coordenador informado
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD); // Sincroniza antes da simulação principal
+    // Não há coordenador inicial - a eleição só acontecerá quando o detector perceber a queda
 
     double inicio = MPI_Wtime(); // Marca início da simulação temporal
     int detector_disparado = 0;  // Impede múltiplas detecções
@@ -276,22 +309,22 @@ int main(int argc, char **argv)
 
         if (!ja_caiu && processo_falho == id_processo && decorrido >= tempo_queda) // Confere se é hora da queda
         {
-            // Simula a queda do coordenador "valentão"
-            esta_offline = 1;                                    // Marca processo como offline
-            ja_caiu = 1;                                         // Evita disparar queda novamente
-            estado_eleicao = ESTADO_OCIOSO;                      // Reseta estado de eleição
-            printf("\n--- Processo %d caiu ---\n", id_processo); // Loga evento
+            // Simula a queda do processo offline
+            esta_offline = 1;                                              // Marca processo como offline
+            ja_caiu = 1;                                                   // Evita disparar queda novamente
+            estado_eleicao = ESTADO_OCIOSO;                                // Reseta estado de eleição
+            printf("\n--- Processo %d caiu (offline) ---\n", id_processo); // Loga evento
         }
 
-        if (!detector_disparado && processo_detector == id_processo && decorrido >= tempo_queda + 1.0) // Monitora se detector deve reagir
+        if (!detector_disparado && processo_detector == id_processo && decorrido >= tempo_queda + 0.5) // Monitora se detector deve reagir
         {
-            // Processo detector percebe o silêncio do coordenador
-            detector_disparado = 1;                                                                       // Evita repetição do alerta
-            printf("\n=== Processo %d detectou falha do coordenador %d ===\n", id_processo, coordenador); // Log informativo
-            iniciar_eleicao(" (detecção)", 0);                                                            // Dispara eleição em resposta
+            // Processo detector percebe que o processo offline caiu e inicia eleição
+            detector_disparado = 1;                                                                                           // Evita repetição do alerta
+            printf("\n=== Processo %d detectou que processo %d caiu - iniciando eleição ===\n", id_processo, processo_falho); // Log informativo
+            iniciar_eleicao(" (detectou queda)", 1);                                                                          // Dispara eleição em resposta
         }
 
-        if (processo_falho == id_processo && esta_offline && !ja_voltou && decorrido >= tempo_retorno) // Verifica condição de retorno
+        if (processo_volta && processo_falho == id_processo && esta_offline && !ja_voltou && decorrido >= tempo_retorno) // Verifica condição de retorno
         {
             // Processo que havia caído retorna e força nova eleição
             esta_offline = 0;                                                        // Marca processo como online novamente

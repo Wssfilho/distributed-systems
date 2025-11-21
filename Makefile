@@ -8,7 +8,7 @@ $(TARGET): $(TARGET).c
 	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).c
 
 run: $(TARGET)
-	mpirun --oversubscribe -np 7 ./$(TARGET) 7 1
+	mpirun --oversubscribe -np 9 ./$(TARGET) 1 6 0
 
 clean:
 	rm -f $(TARGET)
