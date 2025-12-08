@@ -1,13 +1,12 @@
-#include <mpi.h>    
-#include <stdio.h>  
-#include <stdlib.h> 
-#include <unistd.h> 
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 // Tags que identificam os tipos de mensagens MPI trocadas entre processos
 #define TAG_ELEICAO 1     // Tag para mensagens de início de eleição
 #define TAG_OK 2          // Tag para respostas OK (processo vivo com ID maior)
 #define TAG_COORDENADOR 3 // Tag para anúncios de novo coordenador
-
 
 #define TEMPO_ESPERA_OK 2.0    // Segundos aguardando respostas OK de processos maiores
 #define TEMPO_ESPERA_COORD 4.0 // Segundos aguardando anúncio do novo coordenador
