@@ -164,9 +164,9 @@ void processar_mensagens(void)
         if (!tem_msg) // Se não há mensagens pendentes
             return;   // Retorna da função
 
-        int payload; // Variável para armazenar o conteúdo da mensagem
+        int carregamento; // Variável para armazenar o conteúdo da mensagem
         // Recebe a mensagem de forma bloqueante
-        MPI_Recv(&payload, 1, MPI_INT, status.MPI_SOURCE, status.MPI_TAG,
+        MPI_Recv(&carregamento, 1, MPI_INT, status.MPI_SOURCE, status.MPI_TAG,
                  MPI_COMM_WORLD, &status);
 
         // Se o processo está offline, ignora processamento (exceto log)
@@ -191,7 +191,7 @@ void processar_mensagens(void)
             receber_ok(status.MPI_SOURCE); // Processa OK
             break;
         case TAG_COORDENADOR:             // Mensagem de anúncio de coordenador
-            receber_coordenador(payload); // Atualiza coordenador
+            receber_coordenador(carregamento); // Atualiza coordenador
             break;
         }
     }
