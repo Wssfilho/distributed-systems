@@ -1,15 +1,14 @@
-// Bibliotecas necessárias para comunicação MPI e funções básicas
-#include <mpi.h>    // Biblioteca para comunicação entre processos distribuídos
-#include <stdio.h>  // Funções de entrada/saída (printf)
-#include <stdlib.h> // Funções de conversão (atoi) e controle (exit)
-#include <unistd.h> // Função usleep para pausas na execução
+#include <mpi.h>    
+#include <stdio.h>  
+#include <stdlib.h> 
+#include <unistd.h> 
 
 // Tags que identificam os tipos de mensagens MPI trocadas entre processos
 #define TAG_ELEICAO 1     // Tag para mensagens de início de eleição
 #define TAG_OK 2          // Tag para respostas OK (processo vivo com ID maior)
 #define TAG_COORDENADOR 3 // Tag para anúncios de novo coordenador
 
-// Tempos de espera para timeouts do algoritmo
+
 #define TEMPO_ESPERA_OK 2.0    // Segundos aguardando respostas OK de processos maiores
 #define TEMPO_ESPERA_COORD 4.0 // Segundos aguardando anúncio do novo coordenador
 
