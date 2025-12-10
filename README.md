@@ -47,45 +47,74 @@ mpicc -o bully_algorithm bully_algorithm.c
 ### Executar
 
 ```bash
-# Executar com 5 processos
-make run
+# Sintaxe: mpirun -np <N> ./bully_algorithm <processo_offline> <processo_detector> [processo_volta]
+# Onde:
+#   N: número total de processos
+#   processo_offline: ID do processo que cairá (1 a N)
+#   processo_detector: ID do processo que detectará a queda e iniciará eleição (1 a N)
+#   processo_volta: (opcional) 1=processo volta, 0=não volta (padrão: 1)
 
-# Ou manualmente com N processos
-mpirun -np 5 ./bully_algorithm
+# Exemplo com 5 processos, processo 3 offline, processo 1 como detector (processo volta)
+mpirun -np 5 ./bully_algorithm 3 1 1
+
+# Exemplo com 4 processos, processo 2 offline, processo 4 como detector (processo NÃO volta)
+mpirun -np 4 ./bully_algorithm 2 4 0
+
+# Exemplo com padrão (processo volta automaticamente)
+mpirun -np 5 ./bully_algorithm 3 1
 ```
 
 ## Como Funciona
 
-1. O processo com maior ID (N-1) inicia como coordenador
-2. Após inicialização, o processo 0 simula a detecção de falha
-3. O processo 0 inicia uma eleição enviando mensagens ELECTION
-4. Processos com ID maior respondem e iniciam suas próprias eleições
-5. O processo com maior ID ativo se torna o novo coordenador
+1. **Inicialização**: Todos os processos iniciam SEM coordenador
+2. **Queda**: O processo especificado como offline cai após 2 segundos
+3. **Detecção**: O processo detector percebe a queda e inicia uma eleição
+4. **Eleição**: Processo detector envia mensagens ELECTION para processos com ID maior
+5. **Respostas**: Processos com ID maior respondem OK e iniciam suas próprias eleições
+6. **Coordenador**: O processo com maior ID ativo se torna o novo coordenador
+7. **Retorno (opcional)**: Se configurado, o processo que caiu pode retornar após 9 segundos e forçar nova eleição
 
 ## Exemplo de Saída
 
-```
-Processo 0 iniciado
-Processo 1 iniciado
-Processo 2 iniciado
-Processo 3 iniciado
-Processo 4 iniciado
+```bash
+# Executando: mpirun -np 5 ./bully_algorithm 3 1
+=== Configuração ===
+Número de processos: 5
+Processo offline: 3
+Processo detector: 1
+Tempo de queda: 2.0s
+====================
 
->>> Processo 4 é o COORDENADOR inicial <<<
+Processo 1 inicializado (sem coordenador)
+Processo 2 inicializado (sem coordenador)
+Processo 3 inicializado (sem coordenador)
+Processo 4 inicializado (sem coordenador)
+Processo 5 inicializado (sem coordenador)
 
-=== Processo 0 detectou falha do coordenador, iniciando eleição ===
+--- Processo 3 caiu (offline) ---
 
-Processo 0 iniciando eleição
-Processo 0 enviando ELECTION para processo 1
-Processo 0 enviando ELECTION para processo 2
-Processo 1 recebeu ELECTION do processo 0
-Processo 1 enviando ANSWER para processo 0
+=== Processo 1 detectou que processo 3 caiu - iniciando eleição ===
+
+Processo 1 iniciando eleição (detectou queda)
+Processo 1 -> ELEIÇÃO -> processo 2
+Processo 1 -> ELEIÇÃO -> processo 4
+Processo 1 -> ELEIÇÃO -> processo 5
+
+Processo 2 recebeu ELEIÇÃO de 1
+Processo 4 recebeu ELEIÇÃO de 1
+Processo 5 recebeu ELEIÇÃO de 1
+
+Processo 1 recebeu OK de 2
+Processo 2 iniciando eleição (atendeu pedido)
 ...
 
->>> Processo 4 é o novo COORDENADOR <<<
+>>> Processo 5 é o novo COORDENADOR <<<
 
 === ELEIÇÃO CONCLUÍDA ===
-Coordenador final: 4
+Processo 1 - Coordenador final: 5
+Processo 2 - Coordenador final: 5
+Processo 4 - Coordenador final: 5
+Processo 5 - Coordenador final: 5
 ```
 
 ## Parâmetros Configuráveis
