@@ -35,8 +35,8 @@ int processo_falho = -1;    // ID do processo que irá cair (simular falha)
 int processo_volta = 1;     // Flag: 1 = processo falho volta, 0 = não volta
 
 // Tempos de simulação
-double tempo_queda = 2.0;   // Tempo (segundos) até o processo falhar
-double tempo_retorno = 9.0; // Tempo (segundos) até o processo voltar
+double tempo_queda = 2.0;   // Tempo até o processo falhar
+double tempo_retorno = 9.0; // Tempo até o processo voltar
 
 // Flags de controle do estado do processo e da eleição
 int esta_offline = 0; // Flag: 1 = processo está offline, 0 = online
@@ -51,16 +51,15 @@ double inicio_espera_coord = 0.0; // Timestamp do início da espera por coordena
 // Função que anuncia este processo como novo coordenador para todos
 void anunciar_coordenador(void)
 {
-    coordenador = id_processo;                                           // Define este processo como coordenador local
-    estado_eleicao = ESTADO_LIDER;                                       // Atualiza estado para líder
-    printf("\n>>> Processo %d é o novo COORDENADOR <<<\n", id_processo); // Exibe mensagem
+    coordenador = id_processo;
+    estado_eleicao = ESTADO_LIDER;
+    printf("\n>>> Processo %d é o novo COORDENADOR <<<\n", id_processo);
 
     // Envia mensagem de coordenador para todos os outros processos
     for (int i = 0; i < total_processos; i++)
     {
-        if (i != rank_mpi) // Não envia mensagem para si mesmo
+        if (i != rank_mpi)
         {
-            // Envia o ID deste processo com tag TAG_COORDENADOR para o processo i
             MPI_Send(&id_processo, 1, MPI_INT, i, TAG_COORDENADOR, MPI_COMM_WORLD);
         }
     }
@@ -100,7 +99,6 @@ void iniciar_eleicao(const char *motivo, int forcar)
     else // Se não há processos maiores
     {
         anunciar_coordenador(); // Este processo se torna coordenador
-        // return;
     }
 }
 
@@ -108,7 +106,6 @@ void iniciar_eleicao(const char *motivo, int forcar)
 // Parâmetro: rank_origem - rank MPI do processo que enviou a eleição
 void responder_eleicao(int rank_origem)
 {
-    // Exibe mensagem indicando recebimento de eleição
     printf("Processo %d recebeu ELEIÇÃO de %d\n", id_processo, rank_origem);
 
     // Envia resposta OK para o processo que iniciou a eleição
@@ -117,7 +114,7 @@ void responder_eleicao(int rank_origem)
     // Se estava ocioso, inicia sua própria eleição (desafia para coordenação)
     if (estado_eleicao == ESTADO_OCIOSO)
     {
-        iniciar_eleicao(" (atendeu pedido)", 0); // Inicia eleição não forçada
+        iniciar_eleicao(" (atendeu pedido)", 0);
     }
 }
 
@@ -125,15 +122,14 @@ void responder_eleicao(int rank_origem)
 // Parâmetro: rank_origem - rank MPI do processo que enviou o OK
 void receber_ok(int rank_origem)
 {
-    // Exibe mensagem indicando recebimento de OK
     printf("Processo %d recebeu OK de %d\n", id_processo, rank_origem);
     recebeu_ok = 1; // Marca flag indicando que recebeu pelo menos um OK
 
     // Se estava esperando OK, agora passa a esperar anúncio do coordenador
     if (estado_eleicao == ESTADO_ESPERANDO_OK)
     {
-        estado_eleicao = ESTADO_ESPERANDO_COORD; // Muda estado para esperando coordenador
-        inicio_espera_coord = MPI_Wtime();       // Marca timestamp do início da espera
+        estado_eleicao = ESTADO_ESPERANDO_COORD;
+        inicio_espera_coord = MPI_Wtime();
     }
 }
 
@@ -141,12 +137,8 @@ void receber_ok(int rank_origem)
 // Parâmetro: novo - ID do processo que se tornou coordenador
 void receber_coordenador(int novo)
 {
-    coordenador = novo; // Atualiza variável com o ID do novo coordenador
-
-    // Se o novo coordenador é este processo, vira líder; caso contrário, volta ao estado ocioso
+    coordenador = novo;
     estado_eleicao = (id_processo == novo) ? ESTADO_LIDER : ESTADO_OCIOSO;
-
-    // Exibe mensagem reconhecendo o novo coordenador
     printf("Processo %d reconhece %d como coordenador\n", id_processo, novo);
 }
 
@@ -155,24 +147,18 @@ void processar_mensagens(void)
 {
     int tem_msg;       // Flag indicando se há mensagem disponível
     MPI_Status status; // Estrutura com informações sobre a mensagem recebida
+    int carregamento;  // Variável para armazenar o conteúdo da mensagem
 
-    while (1) // Loop contínuo até não haver mais mensagens
+    // Loop que processa todas as mensagens disponíveis
+    while (MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &tem_msg, &status) == MPI_SUCCESS && tem_msg)
     {
-        // Verifica se há mensagem disponível sem bloquear (não-bloqueante)
-        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &tem_msg, &status);
-
-        if (!tem_msg) // Se não há mensagens pendentes
-            return;   // Retorna da função
-
-        int carregamento; // Variável para armazenar o conteúdo da mensagem
         // Recebe a mensagem de forma bloqueante
         MPI_Recv(&carregamento, 1, MPI_INT, status.MPI_SOURCE, status.MPI_TAG,
                  MPI_COMM_WORLD, &status);
 
-        // Se o processo está offline, ignora processamento (exceto log)
+        // Se o processo está offline, apenas loga eleições ignoradas
         if (esta_offline)
         {
-            // Se recebeu eleição, apenas loga que ignorou
             if (status.MPI_TAG == TAG_ELEICAO)
             {
                 printf("Processo %d offline ignorou ELEIÇÃO de %d\n",
@@ -190,14 +176,14 @@ void processar_mensagens(void)
         case TAG_OK:                       // Mensagem OK recebida
             receber_ok(status.MPI_SOURCE); // Processa OK
             break;
-        case TAG_COORDENADOR:             // Mensagem de anúncio de coordenador
+        case TAG_COORDENADOR:                  // Mensagem de anúncio de coordenador
             receber_coordenador(carregamento); // Atualiza coordenador
             break;
         }
     }
 }
 
-// Função que verifica se ocorreram timeouts e toma ações apropriadas
+// Função que verifica se ocorreram timeouts
 void verificar_timeouts(void)
 {
     if (esta_offline) // Se processo está offline
@@ -213,6 +199,7 @@ void verificar_timeouts(void)
         // Nenhum processo maior respondeu, então este se torna coordenador
         printf("Processo %d não recebeu OK; assume liderança\n", id_processo);
         anunciar_coordenador(); // Anuncia-se como coordenador
+        return;                 // Evita verificar próximo timeout
     }
 
     // Verifica timeout de espera por anúncio de coordenador
