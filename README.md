@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Bully Algorithm with MPI
 
 Implementation of the leader election algorithm in distributed systems using MPI (Message Passing Interface).
@@ -19,6 +20,29 @@ The Bully Algorithm is used for coordinator election in distributed systems. The
 - **COORDINATOR**: Announcement of the new coordinator.
 
 ## Compilation and Execution
+=======
+# Bully Algorithm (Leader Election) with MPI
+
+Implementation of the Bully leader election algorithm for distributed systems using MPI (Message Passing Interface).
+
+## Algorithm Overview
+
+The Bully Algorithm is used to elect a coordinator in a distributed system. The flow is:
+
+1. **Failure detection**: When a process detects that the coordinator is down, it starts an election.
+2. **ELECTION message**: It sends an election message to all processes with higher IDs.
+3. **OK/ANSWER reply**: Higher-ID processes reply (and may start their own elections).
+4. **New coordinator**: The highest-ID alive process eventually becomes the coordinator.
+5. **COORDINATOR announcement**: The new coordinator announces itself to everyone.
+
+### Message Types
+
+- **ELECTION**: Starts the election process (in code, this is `TAG_ELEICAO`).
+- **OK**: Reply from a higher-ID process (in code, this is `TAG_OK`).
+- **COORDINATOR**: Coordinator announcement (in code, this is `TAG_COORDENADOR`).
+
+## Build and Run
+>>>>>>> 22ca494 (atualiza comentários e mensagens no código para inglês, melhora a clareza das instruções no Makefile e no arquivo de código-fonte)
 
 ### Prerequisites
 
@@ -34,7 +58,11 @@ sudo pacman -S openmpi
 
 ```
 
+<<<<<<< HEAD
 ### Compile
+=======
+### Build
+>>>>>>> 22ca494 (atualiza comentários e mensagens no código para inglês, melhora a clareza das instruções no Makefile e no arquivo de código-fonte)
 
 ```bash
 make
@@ -43,10 +71,11 @@ make
 Or manually:
 
 ```bash
-mpicc -o bully_algorithm bully_algorithm.c
+mpicc -Wall -O2 -o eleicao eleicao.c
 ```
 
 ### Run
+<<<<<<< HEAD
 
 ```bash
 # Syntax: mpirun -np <N> ./bully_algorithm <process_offline> <process_detector> [process_return]
@@ -129,6 +158,73 @@ In the `bully_algorithm.c` code:
 - `timeout`: Wait time for responses (default: 2 seconds)
 - Number of processes: Change the `-np` parameter in the `mpirun` command
 
+=======
+
+This project uses process IDs in the range `0..N-1` (same as MPI rank).
+
+```bash
+# Syntax: mpirun -np <N> ./eleicao <offline_process> <detector_process> [process_returns]
+# Where:
+#   N: total number of processes
+#   offline_process: ID of the process that will go down (0..N-1)
+#   detector_process: ID of the process that will detect the failure and start the election (0..N-1)
+#   process_returns: (optional) 1=returns, 0=does not return (default: 1)
+
+# Example with 5 processes: process 2 goes down, process 0 is the detector (process returns)
+mpirun -np 5 ./eleicao 2 0 1
+
+# Example with 4 processes: process 1 goes down, process 3 is the detector (process does NOT return)
+mpirun -np 4 ./eleicao 1 3 0
+
+# Example using the default (process returns automatically)
+mpirun -np 5 ./eleicao 2 0
+```
+
+## How It Works (Simulation)
+
+1. **Initialization**: All processes start with no coordinator.
+2. **Crash**: The configured offline process goes down after ~2 seconds.
+3. **Detection**: The detector process notices the failure and starts an election.
+4. **Election**: The detector sends ELECTION messages to higher-ID processes.
+5. **Replies**: Higher-ID processes reply with OK and may start their own elections.
+6. **Coordinator**: The highest alive process becomes coordinator.
+7. **Return (optional)**: If enabled, the failed process returns after ~9 seconds and forces a new election.
+
+## Example Output
+
+```bash
+# Running: mpirun -np 5 ./eleicao 2 0
+=== Configuration ===
+Processes: 5 | Offline: 2 | Detector: 0 | Returns: YES
+Times: failure=2.0s | return=9.0s
+====================
+
+Process 0 initialized
+Process 1 initialized
+Process 2 initialized
+Process 3 initialized
+Process 4 initialized
+
+--- Process 2 crashed (offline) ---
+
+=== Process 0 detected that coordinator process 4 is not responding ===
+
+Process 0 starting election (detected failure)
+Process 0 -> ELECTION -> process 1
+Process 0 -> ELECTION -> process 3
+Process 0 -> ELECTION -> process 4
+...
+
+>>> Process 4 is the new COORDINATOR <<<
+
+=== ELECTION COMPLETED ===
+Process 0 - Final coordinator: 4
+Process 1 - Final coordinator: 4
+Process 3 - Final coordinator: 4
+Process 4 - Final coordinator: 4
+```
+
+>>>>>>> 22ca494 (atualiza comentários e mensagens no código para inglês, melhora a clareza das instruções no Makefile e no arquivo de código-fonte)
 ## Cleanup
 
 ```bash

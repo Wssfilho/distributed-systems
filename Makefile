@@ -8,9 +8,9 @@ $(TARGET): $(TARGET).c
 	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).c
 
 run: $(TARGET)
-# 8 processos, primeiro numero depois de target é o ID do processo que cai, e o 
-#segundo é o id do processo que inicia a eleição, o 0 indica que o processo que caiu não volta, se for 1
-#ele volta a participar
+# 8 processes. The first number after the target is the ID of the process that goes down,
+# and the second is the ID of the process that detects the failure and starts the election.
+# The trailing 0 indicates the failed process will NOT return; if it is 1, it returns.
 	mpirun --oversubscribe -np 8 ./$(TARGET) 7 4 0
 
 clean:
