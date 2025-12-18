@@ -1,26 +1,26 @@
-# Algoritmo do Valentão (Bully Algorithm) com MPI
+# Bully Algorithm with MPI
 
-Implementação do algoritmo de eleição de líder em sistemas distribuídos usando MPI (Message Passing Interface).
+Implementation of the leader election algorithm in distributed systems using MPI (Message Passing Interface).
 
-## Descrição do Algoritmo
+## Algorithm Description
 
-O Algoritmo do Valentão é usado para eleição de coordenador em sistemas distribuídos. O processo funciona da seguinte forma:
+The Bully Algorithm is used for coordinator election in distributed systems. The process works as follows:
 
-1. **Detecção de Falha**: Quando um processo detecta que o coordenador falhou, inicia uma eleição
-2. **Mensagem ELECTION**: Envia mensagem para todos os processos com ID maior
-3. **Resposta ANSWER**: Processos com ID maior respondem e iniciam suas próprias eleições
-4. **Novo Coordenador**: O processo com maior ID que não recebe resposta se torna o coordenador
-5. **Anúncio COORDINATOR**: O novo coordenador anuncia sua eleição para todos
+1. **Failure Detection**: When a process detects that the coordinator has failed, it initiates an election.
+2. **ELECTION Message**: Sends a message to all processes with the highest ID.
+3. **ANSWER Response**: Processes with the highest ID respond and initiate their own elections.
+4. **New Coordinator**: The process with the highest ID that does not receive a response becomes the coordinator.
+5. **COORDINATOR Announcement**: The new coordinator announces their election to all processes.
 
-### Tipos de Mensagens
+### Message Types
 
-- **ELECTION**: Inicia processo de eleição
-- **ANSWER**: Resposta de processos com ID maior
-- **COORDINATOR**: Anúncio do novo coordenador
+- **ELECTION**: Initiates the election process.
+- **ANSWER**: Response from processes with the highest ID.
+- **COORDINATOR**: Announcement of the new coordinator.
 
-## Compilação e Execução
+## Compilation and Execution
 
-### Pré-requisitos
+### Prerequisites
 
 ```bash
 # Ubuntu/Debian
@@ -31,100 +31,105 @@ sudo dnf install mpich mpich-devel
 
 # Arch Linux
 sudo pacman -S openmpi
+
 ```
 
-### Compilar
+### Compile
 
 ```bash
 make
 ```
 
-Ou manualmente:
+Or manually:
+
 ```bash
 mpicc -o bully_algorithm bully_algorithm.c
 ```
 
-### Executar
+### Run
 
 ```bash
-# Sintaxe: mpirun -np <N> ./bully_algorithm <processo_offline> <processo_detector> [processo_volta]
-# Onde:
-#   N: número total de processos
-#   processo_offline: ID do processo que cairá (1 a N)
-#   processo_detector: ID do processo que detectará a queda e iniciará eleição (1 a N)
-#   processo_volta: (opcional) 1=processo volta, 0=não volta (padrão: 1)
+# Syntax: mpirun -np <N> ./bully_algorithm <process_offline> <process_detector> [process_return]
 
-# Exemplo com 5 processos, processo 3 offline, processo 1 como detector (processo volta)
+# Where:
+
+# N: total number of processes
+# process_offline: ID of the process that will be dropped (1 to N)
+# process_detector: ID of the process that will detect the drop and initiate an election (1 to N)
+# process_return: (optional) 1=process returns, 0=does not return (default: 1)
+
+# Example with 5 processes, process 3 offline, process 1 as detector (process (return)
 mpirun -np 5 ./bully_algorithm 3 1 1
 
-# Exemplo com 4 processos, processo 2 offline, processo 4 como detector (processo NÃO volta)
+# Example with 4 processes, process 2 offline, process 4 as detector (process does NOT return)
 mpirun -np 4 ./bully_algorithm 2 4 0
 
-# Exemplo com padrão (processo volta automaticamente)
+# Example with pattern (process returns automatically)
 mpirun -np 5 ./bully_algorithm 3 1
-```
 
-## Como Funciona
 
-1. **Inicialização**: Todos os processos iniciam SEM coordenador
-2. **Queda**: O processo especificado como offline cai após 2 segundos
-3. **Detecção**: O processo detector percebe a queda e inicia uma eleição
-4. **Eleição**: Processo detector envia mensagens ELECTION para processos com ID maior
-5. **Respostas**: Processos com ID maior respondem OK e iniciam suas próprias eleições
-6. **Coordenador**: O processo com maior ID ativo se torna o novo coordenador
-7. **Retorno (opcional)**: Se configurado, o processo que caiu pode retornar após 9 segundos e forçar nova eleição
+## How it Works
 
-## Exemplo de Saída
+1. **Initialization**: All processes start WITHOUT a coordinator
+2. **Drop**: The process specified as offline drops after 2 seconds
+3. **Detection**: The detector process notices the drop and initiates an election
+4. **Election**: Detector process sends ELECTION messages to processes with higher IDs
+5. **Responses**: Processes with higher IDs respond OK and initiate their own elections
+6. **Coordinator**: The process with the highest active ID becomes the new coordinator
+7. **Optional Return**: If configured, the crashed process can return after 9 seconds and force a new election.
+
+## Example Output
 
 ```bash
-# Executando: mpirun -np 5 ./bully_algorithm 3 1
-=== Configuração ===
-Número de processos: 5
-Processo offline: 3
-Processo detector: 1
-Tempo de queda: 2.0s
+# Running: mpirun -np 5 ./bully_algorithm 3 1
+=== Configuration ===
+Number of processes: 5
+Offline processes: 3
+Detecting processes: 1
+Crash time: 2.0s
 ====================
 
-Processo 1 inicializado (sem coordenador)
-Processo 2 inicializado (sem coordenador)
-Processo 3 inicializado (sem coordenador)
-Processo 4 inicializado (sem coordenador)
-Processo 5 inicializado (sem coordenador)
+Process 1 initialized (no coordinator)
+Process 2 initialized (no coordinator)
+Process 3 initialized (no coordinator)
+Process 4 initialized (no coordinator)
+Process 5 initialized (no coordinator)
 
---- Processo 3 caiu (offline) ---
+--- Process 3 crashed (offline) ---
 
-=== Processo 1 detectou que processo 3 caiu - iniciando eleição ===
+=== Process 1 detected that process 3 crashed - initiating election ===
 
-Processo 1 iniciando eleição (detectou queda)
-Processo 1 -> ELEIÇÃO -> processo 2
-Processo 1 -> ELEIÇÃO -> processo 4
-Processo 1 -> ELEIÇÃO -> processo 5
+Process 1 initiating election (detected crash)
+Process 1 -> ELECTION -> Process 2
+Process 1 -> ELECTION -> Process 4
+Process 1 -> ELECTION -> Process 5
 
-Processo 2 recebeu ELEIÇÃO de 1
-Processo 4 recebeu ELEIÇÃO de 1
-Processo 5 recebeu ELEIÇÃO de 1
+Process 2 received ELECTION from 1
+Process 4 received ELECTION from 1
+Process 5 received ELECTION from 1
 
-Processo 1 recebeu OK de 2
-Processo 2 iniciando eleição (atendeu pedido)
+Process 1 received OK from 2
+Process 2 starting election (request fulfilled)
 ...
 
->>> Processo 5 é o novo COORDENADOR <<<
+>>> Process 5 is the new COORDINATOR <<<
 
-=== ELEIÇÃO CONCLUÍDA ===
-Processo 1 - Coordenador final: 5
-Processo 2 - Coordenador final: 5
-Processo 4 - Coordenador final: 5
-Processo 5 - Coordenador final: 5
+=== ELECTION COMPLETED ===
+Process 1 - Final Coordinator: 5
+Process 2 - Final Coordinator: 5
+Process 4 - Final Coordinator: 5
+Process 5 - Final Coordinator: 5
+
 ```
 
-## Parâmetros Configuráveis
+## Configurable Parameters
 
-No código `bully_algorithm.c`:
+In the `bully_algorithm.c` code:
 
-- `timeout`: Tempo de espera por respostas (padrão: 2 segundos)
-- Número de processos: Altere o parâmetro `-np` no comando `mpirun`
+- `timeout`: Wait time for responses (default: 2 seconds)
+- Number of processes: Change the `-np` parameter in the `mpirun` command
 
-## Limpeza
+## Cleanup
 
 ```bash
 make clean
