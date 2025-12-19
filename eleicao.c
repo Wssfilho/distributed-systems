@@ -149,7 +149,7 @@ void processar_mensagens(void)
     MPI_Status status; // Struct with information about the received message
     int carregamento;  // Holds the message payload
 
-    // Loop que processa todas as mensagens disponíveis
+    // Loop that processes all available messages
     while (MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &tem_msg, &status) == MPI_SUCCESS && tem_msg)
     {
         // Receive the message (blocking)
@@ -189,7 +189,7 @@ void verificar_timeouts(void)
     if (esta_offline) // If process is offline
         return;       // Don't check timeouts
 
-    double agora = MPI_Wtime(); // Obtém timestamp atual
+    double agora = MPI_Wtime(); // Get current timestamp
 
     // OK wait timeout:
     // If we were waiting for OK, received none and time expired
@@ -269,7 +269,7 @@ void configurar_cenario(int argc, char **argv)
     }
 }
 
-// Função principal do programa
+// Program entry point
 int main(int argc, char **argv)
 {
     // Initialize the MPI environment

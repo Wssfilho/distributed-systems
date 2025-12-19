@@ -1,94 +1,94 @@
-# 🔄 Fluxograma do Algoritmo Bully
+# 🔄 Bully Algorithm Flowchart
 
-## 📋 Visão Geral do Fluxo Principal
+## 📋 Main Flow Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         INÍCIO DO PROGRAMA                       │
+│                        PROGRAM START                              │
 └────────────────────────────────┬────────────────────────────────┘
                                  │
                     ┌────────────▼────────────┐
                     │   MPI_Init()            │
-                    │   - Inicializa MPI      │
-                    │   - Obtém rank          │
-                    │   - Obtém total proc.   │
+                    │   - Initializes MPI     │
+                    │   - Gets rank           │
+                    │   - Gets total procs    │
                     └────────────┬────────────┘
                                  │
                     ┌────────────▼────────────┐
                     │ configurar_cenario()    │
-                    │ - Lê argumentos CLI     │
-                    │ - Valida parâmetros     │
-                    │ - Exibe configuração    │
+                    │ - Reads CLI arguments   │
+                    │ - Validates parameters  │
+                    │ - Prints configuration  │
                     └────────────┬────────────┘
                                  │
                     ┌────────────▼────────────┐
-                    │ Todos os processos      │
-                    │ iniciam SEM coordenador │
+                    │ All processes start     │
+                    │ with NO coordinator     │
                     │ coordenador = -1        │
                     │ estado = OCIOSO         │
                     └────────────┬────────────┘
                                  │
                     ┌────────────▼────────────┐
                     │   MPI_Barrier()         │
-                    │   (Sincronização)       │
+                    │   (Synchronization)     │
                     └────────────┬────────────┘
                                  │
                     ┌────────────▼────────────┐
-                    │   LOOP PRINCIPAL        │
+                    │   MAIN LOOP             │
                     │   (12 segundos)         │
                     └─────────────────────────┘
 ```
 
-## 🔁 Loop Principal (Detalhado)
+## 🔁 Main Loop (Detailed)
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                         LOOP PRINCIPAL                            │
+│                         MAIN LOOP                                  │
 │                    (while tempo < 12.0s)                         │
 └────┬─────────────────────────────────────────────────────────┬───┘
      │                                                           │
      │  ┌────────────────────────────────────────────────┐     │
-     ├─►│ 1. processar_mensagens()                       │     │
-     │  │    - Verifica fila MPI                         │     │
-     │  │    - Processa TAG_ELEICAO, TAG_OK, TAG_COORD   │     │
+    ├─►│ 1. processar_mensagens()                       │     │
+    │  │    - Checks MPI queue                          │     │
+    │  │    - Handles TAG_ELEICAO, TAG_OK, TAG_COORD    │     │
      │  └────────────────────────────────────────────────┘     │
      │                                                           │
      │  ┌────────────────────────────────────────────────┐     │
-     ├─►│ 2. verificar_timeouts()                        │     │
-     │  │    - Timeout OK (2s) → vira coordenador        │     │
-     │  │    - Timeout COORD (4s) → reinicia eleição     │     │
+    ├─►│ 2. verificar_timeouts()                        │     │
+    │  │    - OK timeout (2s) → becomes coordinator     │     │
+    │  │    - COORD timeout (4s) → restarts election    │     │
      │  └────────────────────────────────────────────────┘     │
      │                                                           │
      │  ┌────────────────────────────────────────────────┐     │
-     ├─►│ 3. SIMULAÇÃO DE QUEDA (tempo = 2.0s)           │     │
+    ├─►│ 3. FAILURE SIMULATION (time = 2.0s)            │     │
      │  │    Se (processo_falho == meu_id)               │     │
      │  │    └─► esta_offline = 1                        │     │
-     │  │        printf("caiu")                           │     │
+    │  │        printf("crashed")                        │     │
      │  └────────────────────────────────────────────────┘     │
      │                                                           │
      │  ┌────────────────────────────────────────────────┐     │
-     ├─►│ 4. DETECÇÃO (tempo = 2.5s)                     │     │
+    ├─►│ 4. DETECTION (time = 2.5s)                     │     │
      │  │    Se (processo_detector == meu_id)            │     │
-     │  │    └─► printf("detectou queda")                │     │
-     │  │        iniciar_eleicao("detectou queda")       │     │
+    │  │    └─► printf("detected failure")              │     │
+    │  │        iniciar_eleicao("detected failure")     │     │
      │  └────────────────────────────────────────────────┘     │
      │                                                           │
      │  ┌────────────────────────────────────────────────┐     │
-     ├─►│ 5. RETORNO (tempo = 9.0s, SE processo_volta=1) │     │
+    ├─►│ 5. RETURN (time = 9.0s, IF processo_volta=1)   │     │
      │  │    Se (processo_falho == meu_id && voltou)     │     │
      │  │    └─► esta_offline = 0                        │     │
-     │  │        printf("voltou")                         │     │
-     │  │        iniciar_eleicao("retorno")              │     │
+    │  │        printf("back")                           │     │
+    │  │        iniciar_eleicao("return")               │     │
      │  └────────────────────────────────────────────────┘     │
      │                                                           │
      │  ┌────────────────────────────────────────────────┐     │
-     └─►│ 6. usleep(20ms) - pausa para não travar        │     │
+    └─►│ 6. usleep(20ms) - pause to avoid overload      │     │
         └────────────────────────────────────────────────┘     │
                                                                 │
                               Loop continua ◄──────────────────┘
 ```
 
-## 🗳️ Fluxo da Função: iniciar_eleicao()
+## 🗳️ Function Flow: iniciar_eleicao()
 
 ```
                     ┌──────────────────────┐
@@ -96,20 +96,20 @@
                     └──────────┬───────────┘
                                │
                 ┌──────────────▼──────────────┐
-                │ Posso iniciar eleição?      │
-                │ - NÃO está offline?         │
-                │ - NÃO está em eleição já?   │
+                │ Can I start an election?    │
+                │ - NOT offline?              │
+                │ - NOT already in election?  │
                 │   (ou está forçando?)       │
                 └──────────┬──────────────────┘
                            │
                     ┌──────▼──────┐
-                    │  Não  │ Sim │
+                    │  No   │ Yes │
                     └───┬───┴──┬──┘
                         │      │
                     return     │
                                │
                     ┌──────────▼──────────────┐
-                    │ printf("iniciando...")   │
+                    │ printf("starting...")    │
                     │ recebeu_ok = 0           │
                     │ inicio_eleicao = agora   │
                     └──────────┬───────────────┘
@@ -125,19 +125,19 @@
                     └──────────┬───────────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │ Enviou alguma msg?      │
+                    │ Sent any message?       │
                     └──────┬────────────┬─────┘
                            │            │
                        Não │            │ Sim
                            │            │
                 ┌──────────▼─────┐  ┌──▼───────────────────┐
-                │ SOU O MAIOR!   │  │ estado = ESPERANDO_OK│
+                │ I'M THE HIGHEST!│  │ state = ESPERANDO_OK│
                 │ anunciar_      │  └──────────────────────┘
                 │ coordenador()  │
                 └────────────────┘
 ```
 
-## 💬 Fluxo da Função: processar_mensagens()
+## 💬 Function Flow: processar_mensagens()
 
 ```
                     ┌──────────────────────┐
@@ -150,15 +150,15 @@
                                │
                     ┌──────────▼──────────────┐
                     │ MPI_Iprobe()            │
-                    │ (verifica msg sem       │
-                    │  bloquear)              │
+                    │ (checks message without │
+                    │  blocking)              │
                     └──────────┬──────────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │ Tem mensagem?           │
+                    │ Message available?      │
                     └──────┬────────────┬─────┘
                            │            │
-                       Não │            │ Sim
+                       No  │            │ Yes
                            │            │
                       ┌────▼────┐  ┌────▼──────────────┐
                       │ return  │  │ MPI_Recv()        │
@@ -166,14 +166,14 @@
                                    └────┬──────────────┘
                                         │
                                    ┌────▼──────────────┐
-                                   │ Estou offline?    │
+                                   │ Am I offline?     │
                                    └────┬──────────┬───┘
                                         │          │
-                                    Sim │          │ Não
+                                    Yes │          │ No
                                         │          │
                               ┌─────────▼───┐  ┌──▼────────────────┐
                               │ printf      │  │ switch(status.TAG)│
-                              │ "ignorou"   │  └──┬────────────────┘
+                              │ "ignored"   │  └──┬────────────────┘
                               │ continue    │     │
                               └─────────────┘     │
                                                   │
@@ -187,61 +187,61 @@
                     │                             │                         │
                     └─────────────────────────────┴─────────────────────────┘
                                                   │
-                                            (volta ao loop)
+                                            (back to loop)
 ```
 
-## 📨 Fluxo: responder_eleicao()
+## 📨 Flow: responder_eleicao()
 
 ```
                     ┌──────────────────────┐
                     │ responder_eleicao()  │
-                    │ (alguém me mandou    │
-                    │  msg de ELEIÇÃO)     │
+                    │ (someone sent me an  │
+                    │  ELECTION message)   │
                     └──────────┬───────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │ printf("recebeu         │
-                    │ ELEIÇÃO de X")          │
+                    │ printf("received        │
+                    │ ELECTION from X")       │
                     └──────────┬──────────────┘
                                │
                     ┌──────────▼──────────────┐
                     │ MPI_Send()              │
                     │ TAG_OK para X           │
-                    │ (respondo que estou     │
-                    │  vivo e sou maior)      │
+                    │ (I reply I'm alive and  │
+                    │  have a higher ID)      │
                     └──────────┬──────────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │ Estou OCIOSO?           │
+                    │ Am I IDLE?              │
                     └──────┬────────────┬─────┘
                            │            │
-                       Não │            │ Sim
+                       No  │            │ Yes
                            │            │
                       ┌────▼────┐  ┌────▼──────────────┐
                       │ return  │  │ iniciar_eleicao() │
-                      └─────────┘  │ (me candidato tb!)│
+                      └─────────┘  │ (I also compete!) │
                                    └───────────────────┘
 ```
 
-## ✅ Fluxo: receber_ok()
+## ✅ Flow: receber_ok()
 
 ```
                     ┌──────────────────────┐
                     │   receber_ok()       │
-                    │ (recebi resposta de  │
-                    │  processo maior)     │
+                    │ (received reply from │
+                    │  higher process)     │
                     └──────────┬───────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │ printf("recebeu OK")    │
+                    │ printf("received OK")   │
                     │ recebeu_ok = 1          │
                     └──────────┬──────────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │ Estava ESPERANDO_OK?    │
+                    │ Was I ESPERANDO_OK?     │
                     └──────┬────────────┬─────┘
                            │            │
-                       Não │            │ Sim
+                       No  │            │ Yes
                            │            │
                       ┌────▼────┐  ┌────▼──────────────────┐
                       │ return  │  │ estado =              │
@@ -250,12 +250,12 @@
                                    └───────────────────────┘
 ```
 
-## 👑 Fluxo: anunciar_coordenador()
+## 👑 Flow: anunciar_coordenador()
 
 ```
                     ┌──────────────────────┐
                     │ anunciar_coordenador│
-                    │ (SOU O LÍDER!)       │
+                    │ (I'M THE LEADER!)    │
                     └──────────┬───────────┘
                                │
                     ┌──────────▼──────────────┐
@@ -264,21 +264,21 @@
                     └──────────┬──────────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │ printf(">>> SOU O NOVO  │
-                    │ COORDENADOR <<<")       │
+                    │ printf(">>> I'M THE NEW │
+                    │ COORDINATOR <<<")       │
                     └──────────┬──────────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │ FOR (todos processos)   │
+                    │ FOR (all processes)     │
                     │ ┌────────────────────┐  │
                     │ │ MPI_Send()         │  │
                     │ │ TAG_COORDENADOR    │  │
-                    │ │ (anuncio-me)       │  │
+                    │ │ (announce myself)  │  │
                     │ └────────────────────┘  │
                     └─────────────────────────┘
 ```
 
-## ⏱️ Fluxo: verificar_timeouts()
+## ⏱️ Flow: verificar_timeouts()
 
 ```
                     ┌──────────────────────┐
@@ -286,129 +286,129 @@
                     └──────────┬───────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │ Estou offline?          │
+                    │ Am I offline?           │
                     └──────┬────────────┬─────┘
                            │            │
-                       Sim │            │ Não
+                       Yes │            │ No
                            │            │
                       ┌────▼────┐       │
                       │ return  │       │
                       └─────────┘       │
                                         │
                     ┌───────────────────▼───────────────────┐
-                    │ TIMEOUT 1: Esperando OK (2s)          │
+                    │ TIMEOUT 1: Waiting for OK (2s)        │
                     │ Se (estado==ESPERANDO_OK &&           │
                     │     !recebeu_ok &&                    │
                     │     tempo >= 2s)                      │
-                    │ └─► printf("não recebeu OK")          │
+                    │ └─► printf("didn't receive OK")       │
                     │     anunciar_coordenador()            │
                     └───────────────────┬───────────────────┘
                                         │
                     ┌───────────────────▼───────────────────┐
-                    │ TIMEOUT 2: Esperando COORD (4s)       │
+                    │ TIMEOUT 2: Waiting for COORD (4s)     │
                     │ Se (estado==ESPERANDO_COORD &&        │
                     │     tempo >= 4s)                      │
-                    │ └─► printf("não recebeu anúncio")     │
+                    │ └─► printf("didn't receive announcement")│
                     │     estado = OCIOSO                   │
                     │     iniciar_eleicao("timeout")        │
                     └───────────────────────────────────────┘
 ```
 
-## 🎯 Estados do Processo
+## 🎯 Process States
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                    MÁQUINA DE ESTADOS                         │
+│                     STATE MACHINE                             │
 └──────────────────────────────────────────────────────────────┘
 
-    OCIOSO ────────────────────────────────────────┐
+    IDLE ──────────────────────────────────────────┐
        │                                            │
-       │ iniciar_eleicao()                         │
+    │ iniciar_eleicao()                         │
        │                                            │
        ▼                                            │
-  ESPERANDO_OK ────────┐                           │
+    WAITING_OK ──────────┐                           │
        │                │                           │
-       │ recebeu OK     │ timeout (2s)              │
-       │                │ sem OK                    │
+    │ got OK         │ timeout (2s)              │
+    │                │ no OK                     │
        ▼                ▼                           │
-  ESPERANDO_COORD   LIDER ◄─────────────────────── ┤
+    WAITING_COORD    LEADER ◄────────────────────────┤
        │                │                           │
-       │ timeout (4s)   │ recebe COORDENADOR       │
-       │                │ de ID maior              │
+    │ timeout (4s)   │ receives COORDINATOR     │
+    │                │ from higher ID           │
        └────────────────┴───────────────────────────┘
                          │
                          ▼
-                      OCIOSO
+                      IDLE
 ```
 
-## 📊 Linha do Tempo (Exemplo: 5 processos, P3 cai, P1 detecta)
+## 📊 Timeline (Example: 5 processes, P3 crashes, P1 detects)
 
 ```
-Tempo │ P1              │ P2       │ P3           │ P4       │ P5
+Time  │ P1              │ P2       │ P3           │ P4       │ P5
 ──────┼─────────────────┼──────────┼──────────────┼──────────┼─────────
-0.0s  │ OCIOSO          │ OCIOSO   │ OCIOSO       │ OCIOSO   │ OCIOSO
+0.0s  │ IDLE            │ IDLE     │ IDLE         │ IDLE     │ IDLE
 ──────┼─────────────────┼──────────┼──────────────┼──────────┼─────────
-2.0s  │ OCIOSO          │ OCIOSO   │ ⚠️ OFFLINE   │ OCIOSO   │ OCIOSO
+2.0s  │ IDLE            │ IDLE     │ ⚠️ OFFLINE   │ IDLE     │ IDLE
 ──────┼─────────────────┼──────────┼──────────────┼──────────┼─────────
-2.5s  │ 🔍 Detecta P3   │ OCIOSO   │ OFFLINE      │ OCIOSO   │ OCIOSO
-      │ ELEIÇÃO→P2-P5   │          │              │          │
-      │ ESP_OK          │          │              │          │
+2.5s  │ 🔍 Detects P3   │ IDLE     │ OFFLINE      │ IDLE     │ IDLE
+    │ ELECTION→P2-P5  │          │              │          │
+    │ WAITING_OK      │          │              │          │
 ──────┼─────────────────┼──────────┼──────────────┼──────────┼─────────
-2.5s+ │ ESP_OK          │ OK→P1    │ OFFLINE      │ OK→P1    │ OK→P1
-      │                 │ ELEIÇÃO  │              │ ELEIÇÃO  │ ELEIÇÃO
-      │                 │ →P3-P5   │              │ →P5      │
-      │                 │ ESP_OK   │              │ ESP_OK   │ ESP_OK
+2.5s+ │ WAITING_OK      │ OK→P1    │ OFFLINE      │ OK→P1    │ OK→P1
+    │                 │ ELECTION │              │ ELECTION │ ELECTION
+    │                 │ →P3-P5   │              │ →P5      │
+    │                 │ WAITING_OK│             │ WAITING_OK│ WAITING_OK
 ──────┼─────────────────┼──────────┼──────────────┼──────────┼─────────
-2.6s  │ recebe OK(P2)   │ OK(P4)   │ OFFLINE      │ OK(P5)   │ OK→P2
-      │ recebe OK(P4)   │ OK(P5)   │              │ ESP_COORD│ OK→P4
-      │ recebe OK(P5)   │ ESP_COORD│              │          │ 👑 LIDER
-      │ ESP_COORD       │          │              │          │
+2.6s  │ got OK(P2)      │ OK(P4)   │ OFFLINE      │ OK(P5)   │ OK→P2
+    │ got OK(P4)      │ OK(P5)   │              │ WAITING_COORD│ OK→P4
+    │ got OK(P5)      │ WAITING_COORD│          │          │ 👑 LEADER
+    │ WAITING_COORD   │          │              │          │
 ──────┼─────────────────┼──────────┼──────────────┼──────────┼─────────
-2.6s+ │ COORD=P5        │ COORD=P5 │ OFFLINE      │ COORD=P5 │ ANUNCIA
-      │ OCIOSO          │ OCIOSO   │              │ OCIOSO   │ LIDER
+2.6s+ │ COORD=P5        │ COORD=P5 │ OFFLINE      │ COORD=P5 │ ANNOUNCES
+    │ IDLE            │ IDLE     │              │ IDLE     │ LEADER
 ──────┼─────────────────┼──────────┼──────────────┼──────────┼─────────
-9.0s  │ OCIOSO          │ OCIOSO   │ 🔄 VOLTOU    │ OCIOSO   │ LIDER
-      │                 │          │ ELEIÇÃO→P5   │          │
-      │                 │          │ ESP_OK       │          │
+9.0s  │ IDLE            │ IDLE     │ 🔄 BACK      │ IDLE     │ LEADER
+    │                 │          │ ELECTION→P5  │          │
+    │                 │          │ WAITING_OK   │          │
 ──────┼─────────────────┼──────────┼──────────────┼──────────┼─────────
-9.0s+ │ OCIOSO          │ OCIOSO   │ OK(P5)       │ OCIOSO   │ OK→P3
-      │                 │          │ ESP_COORD    │          │ 👑 LIDER
+9.0s+ │ IDLE            │ IDLE     │ OK(P5)       │ IDLE     │ OK→P3
+    │                 │          │ WAITING_COORD│          │ 👑 LEADER
 ──────┼─────────────────┼──────────┼──────────────┼──────────┼─────────
-9.1s  │ COORD=P5        │ COORD=P5 │ COORD=P5     │ COORD=P5 │ ANUNCIA
-      │ OCIOSO          │ OCIOSO   │ OCIOSO       │ OCIOSO   │ LIDER
+9.1s  │ COORD=P5        │ COORD=P5 │ COORD=P5     │ COORD=P5 │ ANNOUNCES
+    │ IDLE            │ IDLE     │ IDLE         │ IDLE     │ LEADER
 ```
 
-## 🔑 Legenda de Símbolos
+## 🔑 Symbol Legend
 
 ```
-📨 Mensagem enviada
-📬 Mensagem recebida
-⚠️  Processo offline
-🔄 Processo voltou
-🔍 Detectou falha
-👑 Virou coordenador
+📨 Sent message
+📬 Received message
+⚠️  Process offline
+🔄 Process returned
+🔍 Failure detected
+👑 Became coordinator
 ⏱️  Timeout
-✅ OK recebido
+✅ OK received
 ```
 
-## 💡 Resumo dos Fluxos Críticos
+## 💡 Summary of Critical Flows
 
-### 1️⃣ **Início de Eleição**
+### 1️⃣ **Election Start**
 ```
-Gatilho → Envia ELEIÇÃO para maiores → Aguarda OK (2s)
+Trigger → Sends ELECTION to higher IDs → Waits for OK (2s)
    ↓                                           ↓
-   └── Sem maiores → Vira Coordenador    Recebeu OK? → Aguarda Coordenador (4s)
+    └── No higher IDs → Becomes Coordinator    Got OK? → Waits for Coordinator (4s)
 ```
 
-### 2️⃣ **Recebimento de Eleição**
+### 2️⃣ **Receiving an Election**
 ```
-Msg ELEIÇÃO → Envia OK → Estava ocioso? → SIM → Inicia própria eleição
+ELECTION msg → Sends OK → Was idle? → YES → Starts own election
                               ↓
-                             NÃO → Continua esperando
+                             NO → Keeps waiting
 ```
 
 ### 3️⃣ **Timeouts**
 ```
-Timeout OK (2s) → Sem OK? → Vira Coordenador
-Timeout COORD (4s) → Sem anúncio? → Reinicia eleição
+OK timeout (2s) → No OK? → Becomes Coordinator
+COORD timeout (4s) → No announcement? → Restarts election
 ```
